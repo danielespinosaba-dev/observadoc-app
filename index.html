@@ -466,11 +466,12 @@ textarea.fc{resize:vertical;min-height:70px}
     <!-- REPORTES -->
     <div class="page" id="page-reportes">
       <div class="ph">
-        <div class="ph-left"><h2>Reportes</h2><p>Análisis de resultados por proceso</p></div>
+        <div class="ph-left"><h2>Reportes</h2><p>Dashboard visual de seguimiento docente</p></div>
       </div>
 
       <!-- FILTER BAR -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center;background:var(--white);padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow)">
+        <span style="font-size:12px;color:var(--ink3);font-weight:500;margin-right:4px">Filtros:</span>
         <select class="fsel" id="rpt-docente" onchange="renderReportes()"><option value="">Todos los docentes</option></select>
         <select class="fsel" id="rpt-nivel" onchange="renderReportes()">
           <option value="">Todos los niveles</option>
@@ -485,20 +486,23 @@ textarea.fc{resize:vertical;min-height:70px}
           <option value="MARZO">Marzo</option><option value="ABRIL">Abril</option>
           <option value="MAYO">Mayo</option><option value="JUNIO">Junio</option>
         </select>
+        <button class="btn btn-outline btn-sm" onclick="document.querySelectorAll('#rpt-docente,#rpt-nivel,#rpt-lider,#rpt-mes').forEach(s=>s.value='');renderReportes()">✕ Limpiar</button>
       </div>
 
-      <!-- PROCESS TABS -->
-      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border)">
-        <button class="rpt-tab active" id="rtab-lw" onclick="switchRptTab('lw')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;color:var(--ch-orange);border-bottom:2px solid var(--ch-orange);transition:.15s">Learning Walk</button>
-        <button class="rpt-tab" id="rtab-fo" onclick="switchRptTab('fo')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;transition:.15s">Obs. Formal</button>
-        <button class="rpt-tab" id="rtab-mc" onclick="switchRptTab('mc')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;transition:.15s">Modelaje</button>
-        <button class="rpt-tab" id="rtab-fb" onclick="switchRptTab('fb')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;transition:.15s">Feedback</button>
+      <!-- TABS -->
+      <div style="display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--border)">
+        <button class="rpt-tab active" id="rtab-overview" onclick="switchRptTab('overview')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ch-orange);border-bottom:2px solid var(--ch-orange)">◈ General</button>
+        <button class="rpt-tab" id="rtab-fo" onclick="switchRptTab('fo')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent">Obs. Formal</button>
+        <button class="rpt-tab" id="rtab-lw" onclick="switchRptTab('lw')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent">Learning Walk</button>
+        <button class="rpt-tab" id="rtab-fb" onclick="switchRptTab('fb')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent">Feedback</button>
+        <button class="rpt-tab" id="rtab-mc" onclick="switchRptTab('mc')" style="padding:8px 18px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent">Modelaje</button>
       </div>
 
-      <div id="rpt-lw-panel"><div class="loading"><div class="spinner"></div>Cargando datos...</div></div>
-      <div id="rpt-fo-panel" style="display:none"><div class="loading"><div class="spinner"></div>Cargando datos...</div></div>
-      <div id="rpt-mc-panel" style="display:none"><div class="loading"><div class="spinner"></div>Cargando datos...</div></div>
-      <div id="rpt-fb-panel" style="display:none"><div class="loading"><div class="spinner"></div>Cargando datos...</div></div>
+      <div id="rpt-overview-panel"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      <div id="rpt-fo-panel" style="display:none"></div>
+      <div id="rpt-lw-panel" style="display:none"></div>
+      <div id="rpt-fb-panel" style="display:none"></div>
+      <div id="rpt-mc-panel" style="display:none"></div>
     </div>
 
     <!-- GESTIONAR -->
@@ -1357,7 +1361,7 @@ function downloadICS(id){
 
 // ===================== REPORTES =====================
 let rptData = {lw:[], fo:[], mc:[], fb:[]};
-let currentRptTab = 'lw';
+let currentRptTab = 'overview';
 
 async function loadReportData() {
   try {
@@ -1405,28 +1409,6 @@ function filterRptData(data, tipo) {
   });
 }
 
-function switchRptTab(tab) {
-  currentRptTab = tab;
-  ['lw','fo','mc','fb'].forEach(t => {
-    const btn = document.getElementById('rtab-'+t);
-    const panel = document.getElementById('rpt-'+t+'-panel');
-    if (btn && panel) {
-      const active = t === tab;
-      btn.style.color = active ? 'var(--ch-orange)' : 'var(--ink3)';
-      btn.style.borderBottom = active ? '2px solid var(--ch-orange)' : '2px solid transparent';
-      panel.style.display = active ? '' : 'none';
-    }
-  });
-  renderReportes();
-}
-
-function renderReportes() {
-  if (currentRptTab === 'lw') renderRptLW();
-  else if (currentRptTab === 'fo') renderRptFO();
-  else if (currentRptTab === 'mc') renderRptMC();
-  else if (currentRptTab === 'fb') renderRptFB();
-}
-
 function barHTML(label, pct, color, val, total) {
   return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
     <div style="font-size:12px;color:var(--ink2);min-width:200px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${label}">${label}</div>
@@ -1456,13 +1438,470 @@ function metricCards(items) {
   </div>`;
 }
 
-// ---- LW REPORT ----
-const LW_SECCIONES = {
-  "Inicio de la clase": ["El objetivo de la sesión es claro y explícito","Se conecta con aprendizajes previos o experiencias del estudiante","Se observa interés o motivación inicial de los alumnos"],
-  "Desarrollo de la clase": ["Los estudiantes participan activamente en la actividad","Se observan evidencias de aprendizaje (oral, escrita o práctica)","Las estrategias de enseñanza son variadas y accesibles","El docente monitorea y retroalimenta durante la actividad"],
-  "Cierre de la clase": ["Se da espacio para que los estudiantes expresen lo aprendido","El cierre conecta con el objetivo planteado al inicio","Se ofrecen pistas o continuidad hacia la siguiente sesión"],
-  "Aspectos transversales": ["El ambiente del aula es seguro, inclusivo y respetuoso","El nivel de compromiso de los estudiantes es alto","Se fomenta pensamiento crítico, resolución de problemas o creatividad","Se usan adecuadamente los recursos disponibles","Se adapta la enseñanza según necesidades de los estudiantes"]
-};
+// ===================== REPORTES — DASHBOARD VISUAL =====================
+
+function svgDonut(pct, color, size=80, stroke=12) {
+  const r = (size-stroke)/2, cx=size/2, cy=size/2;
+  const circ = 2*Math.PI*r;
+  const dash = pct/100*circ;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#ede9e4" stroke-width="${stroke}"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+      stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"
+      style="transition:stroke-dasharray .6s ease"/>
+  </svg>`;
+}
+
+function svgBar(values, labels, colors, maxVal, height=120) {
+  const w=480, pad=40, barW=Math.max(18, Math.floor((w-pad*2)/values.length)-6);
+  const scaleH = height-28;
+  let bars = values.map((v,i)=>{
+    const bh = maxVal>0 ? Math.round(v/maxVal*scaleH) : 0;
+    const x = pad + i*(barW+6);
+    const y = scaleH - bh + 4;
+    const label = labels[i] ? labels[i].substring(0,8) : '';
+    return `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="3" fill="${colors[i%colors.length]}" opacity=".85"/>
+      <text x="${x+barW/2}" y="${scaleH+16}" text-anchor="middle" font-size="9" fill="#8e8c8d">${label}</text>
+      <text x="${x+barW/2}" y="${y-3}" text-anchor="middle" font-size="9" fill="#414042" font-weight="500">${v}</text>`;
+  }).join('');
+  return `<svg width="100%" viewBox="0 0 ${w} ${height}" preserveAspectRatio="xMidYMid meet" style="overflow:visible">${bars}</svg>`;
+}
+
+function svgLine(values, labels, color, height=100) {
+  if(values.length<2) return '';
+  const w=480, pad=32;
+  const maxV = Math.max(...values,1);
+  const pts = values.map((v,i)=>{
+    const x = pad + i*(w-pad*2)/(values.length-1);
+    const y = (height-20) - v/maxV*(height-28) + 4;
+    return [x,y];
+  });
+  const path = pts.map((p,i)=>(i===0?`M${p[0]},${p[1]}`:`L${p[0]},${p[1]}`)).join(' ');
+  const area = `M${pts[0][0]},${height-16} ` + pts.map(p=>`L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${height-16} Z`;
+  const dots = pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${color}"/>
+    <text x="${p[0]}" y="${p[1]-7}" text-anchor="middle" font-size="9" fill="#414042">${values[i]}</text>
+    <text x="${p[0]}" y="${height-4}" text-anchor="middle" font-size="8" fill="#8e8c8d">${(labels[i]||'').substring(0,3)}</text>`).join('');
+  return `<svg width="100%" viewBox="0 0 ${w} ${height}" preserveAspectRatio="xMidYMid meet" style="overflow:visible">
+    <path d="${area}" fill="${color}" opacity=".08"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+  </svg>`;
+}
+
+function statCard(label, value, sub, color) {
+  return `<div style="background:var(--white);border-radius:var(--r);padding:16px 18px;border:1px solid var(--border);border-top:3px solid ${color};box-shadow:var(--shadow)">
+    <div style="font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${label}</div>
+    <div style="font-size:28px;font-weight:600;color:var(--ink);line-height:1">${value}</div>
+    ${sub?`<div style="font-size:11.5px;color:var(--ink3);margin-top:4px">${sub}</div>`:''}
+  </div>`;
+}
+
+function vizCard(title, content, accent='var(--teal)') {
+  return `<div style="background:var(--white);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+      <div style="width:3px;height:16px;border-radius:2px;background:${accent};flex-shrink:0"></div>
+      <div style="font-size:13px;font-weight:500;color:var(--ink)">${title}</div>
+    </div>
+    <div style="padding:16px">${content}</div>
+  </div>`;
+}
+
+function hBar(label, pct, color, valueLabel) {
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+      <div style="font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%">${label}</div>
+      <div style="font-size:12px;font-weight:500;color:var(--ink);flex-shrink:0">${valueLabel}</div>
+    </div>
+    <div style="height:7px;background:var(--paper2);border-radius:4px;overflow:hidden">
+      <div style="height:100%;width:${Math.min(pct,100)}%;background:${color};border-radius:4px;transition:width .5s ease"></div>
+    </div>
+  </div>`;
+}
+
+const MONTHS_RPT = ['SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO'];
+const MONTHS_SHORT = ['Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun'];
+const DOM_COLORS_RPT = {D1:'#2B91CF',D2:'#F59120',D3:'#44579C',D4:'#e11d48',D5:'#0891b2'};
+const DOM_NAMES_RPT = {D1:'Cultura del aula',D2:'Planificación',D3:'Instrucción',D4:'Eficacia',D5:'Diferenciación'};
+
+function renderReportes() {
+  if (currentRptTab === 'overview') renderRptOverview();
+  else if (currentRptTab === 'fo') renderRptFO();
+  else if (currentRptTab === 'lw') renderRptLW();
+  else if (currentRptTab === 'fb') renderRptFB();
+  else if (currentRptTab === 'mc') renderRptMC();
+}
+
+// ---- OVERVIEW ----
+function renderRptOverview() {
+  const panel = document.getElementById('rpt-overview-panel');
+  const f = getRptFilters();
+  let acts = activities.filter(a => a.status === 'done');
+  if(f.docente) acts = acts.filter(a=>a.teacher_name===f.docente);
+  if(f.lider) acts = acts.filter(a=>a.leader_name===f.lider);
+  if(f.mes) acts = acts.filter(a=>a.month===f.mes);
+
+  const byType = {LW:0,FO:0,FB:0,MC:0};
+  acts.forEach(a=>{ if(byType[a.type]!==undefined) byType[a.type]++; });
+  const total = acts.length;
+
+  // Por mes
+  const byMonth = {};
+  MONTHS_RPT.forEach(m=>byMonth[m]=0);
+  acts.forEach(a=>{ if(a.month && byMonth[a.month]!==undefined) byMonth[a.month]++; });
+  const monthVals = MONTHS_RPT.map(m=>byMonth[m]);
+  const monthLabels = MONTHS_SHORT;
+
+  // Por docente top 8
+  const byTeacher = {};
+  acts.forEach(a=>{ if(!byTeacher[a.teacher_name])byTeacher[a.teacher_name]=0; byTeacher[a.teacher_name]++; });
+  const topTeachers = Object.entries(byTeacher).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxT = Math.max(...topTeachers.map(t=>t[1]),1);
+
+  // Donuts por tipo
+  const typeColors = {LW:'#2B91CF',FO:'#F59120',FB:'#e11d48',MC:'#44579C'};
+  const donutRow = Object.entries(byType).map(([tipo,cnt])=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div style="position:relative">
+        ${svgDonut(total>0?cnt/total*100:0, typeColors[tipo], 72, 10)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--ink)">${cnt}</div>
+      </div>
+      <div style="font-size:11px;color:var(--ink3);text-align:center">${TYPE_LABELS[tipo]}</div>
+    </div>`).join('');
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    ${statCard('Total actividades', total, 'completadas', '#2B91CF')}
+    ${statCard('Docentes observados', Object.keys(byTeacher).length, 'con al menos 1 sesión', '#F59120')}
+    ${statCard('Líderes activos', new Set(acts.map(a=>a.leader_name)).size, 'con actividades registradas', '#44579C')}
+    ${statCard('Mes más activo', cap(MONTHS_RPT.reduce((a,b)=>byMonth[a]>=byMonth[b]?a:b, MONTHS_RPT[0])||'—'), 'mayor número de sesiones', '#0891b2')}
+  </div>`;
+
+  html += vizCard('Distribución por tipo de proceso',
+    `<div style="display:flex;justify-content:space-around;align-items:center;padding:8px 0">${donutRow}</div>`,
+    '#2B91CF');
+
+  html += vizCard('Actividad mensual — todos los procesos',
+    `<div style="padding:4px 0">${svgLine(monthVals, monthLabels, '#2B91CF', 110)}</div>`,
+    '#2B91CF');
+
+  if(topTeachers.length) {
+    html += vizCard('Docentes con más sesiones completadas',
+      topTeachers.map(([name,v])=>hBar(shortName(name), v/maxT*100, '#F59120', v+' sesiones')).join(''),
+      '#F59120');
+  }
+
+  panel.innerHTML = html || '<div class="empty"><p>Sin datos con estos filtros</p></div>';
+}
+
+// ---- FO DASHBOARD ----
+function renderRptFO() {
+  const panel = document.getElementById('rpt-fo-panel');
+  const data = filterRptData(rptData.fo, 'fo');
+  if(!data.length){panel.innerHTML='<div class="empty"><div class="empty-icon">◌</div><p>Sin datos de FO con estos filtros</p></div>';return;}
+
+  const avgVal = data.filter(d=>d.valoracion_general!=null).reduce((a,d)=>a+d.valoracion_general,0)/(data.filter(d=>d.valoracion_general!=null).length||1);
+
+  // Por dominio
+  const domData = {};
+  ['D1','D2','D3','D4','D5'].forEach(d=>domData[d]={sum:0,cnt:0,forms:0});
+  data.forEach(f=>{
+    if(!domData[f.dominio]) return;
+    domData[f.dominio].forms++;
+    const r = typeof f.respuestas==='string'?JSON.parse(f.respuestas):f.respuestas||{};
+    Object.values(r).forEach(v=>{domData[f.dominio].sum+=Number(v);domData[f.dominio].cnt++;});
+  });
+
+  // Por docente
+  const byTeacher = {};
+  data.forEach(d=>{
+    if(!byTeacher[d.teacher_name])byTeacher[d.teacher_name]={sum:0,cnt:0,forms:0,doms:{}};
+    byTeacher[d.teacher_name].forms++;
+    const r = typeof d.respuestas==='string'?JSON.parse(d.respuestas):d.respuestas||{};
+    Object.values(r).forEach(v=>{byTeacher[d.teacher_name].sum+=Number(v);byTeacher[d.teacher_name].cnt++;});
+    if(!byTeacher[d.teacher_name].doms[d.dominio]) byTeacher[d.teacher_name].doms[d.dominio]=0;
+    byTeacher[d.teacher_name].doms[d.dominio]++;
+  });
+
+  // Tendencia mensual
+  const byMonth={};
+  MONTHS_RPT.forEach(m=>byMonth[m]={sum:0,cnt:0});
+  data.forEach(d=>{
+    const act=activities.find(a=>a.id===d.activity_id);
+    const m=act?.month;
+    if(m&&byMonth[m]){
+      const r=typeof d.respuestas==='string'?JSON.parse(d.respuestas):d.respuestas||{};
+      Object.values(r).forEach(v=>{byMonth[m].sum+=Number(v);byMonth[m].cnt++;});
+    }
+  });
+  const monthAvgs = MONTHS_RPT.map(m=>byMonth[m].cnt>0?(byMonth[m].sum/byMonth[m].cnt).toFixed(2):0);
+  const activeMths = MONTHS_RPT.filter((_,i)=>monthAvgs[i]>0);
+  const activeVals = monthAvgs.filter(v=>v>0).map(Number);
+
+  // Dominios visuals
+  const domEntries = Object.entries(domData).filter(([,v])=>v.forms>0);
+  const domDonutRow = domEntries.map(([d,v])=>{
+    const avg = v.cnt>0?v.sum/v.cnt:0;
+    const pct = avg/3*100;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="position:relative">
+        ${svgDonut(pct, DOM_COLORS_RPT[d], 68, 9)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink)">${avg.toFixed(1)}</div>
+      </div>
+      <div style="font-size:10px;color:var(--ink3);text-align:center;max-width:60px">${d}</div>
+    </div>`;
+  }).join('');
+
+  const teacherEntries = Object.entries(byTeacher).filter(([,v])=>v.cnt>0).sort((a,b)=>(b[1].sum/b[1].cnt)-(a[1].sum/a[1].cnt));
+  const maxAvg = Math.max(...teacherEntries.map(([,v])=>v.sum/v.cnt),1);
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    ${statCard('FO registradas', data.length, '', '#F59120')}
+    ${statCard('Valoración promedio', avgVal.toFixed(1)+'/3', 'promedio general', '#F59120')}
+    ${statCard('Docentes observados', Object.keys(byTeacher).length, '', '#44579C')}
+    ${statCard('Dominios cubiertos', domEntries.length+'/5', '', '#0891b2')}
+  </div>`;
+
+  if(domDonutRow) html += vizCard('Promedio por dominio (0–3)',
+    `<div style="display:flex;justify-content:space-around;padding:8px 0">${domDonutRow}</div><div style="display:flex;justify-content:space-around;margin-top:4px">${domEntries.map(([d,v])=>`<div style="font-size:10px;color:var(--ink3);text-align:center;max-width:70px">${DOM_NAMES_RPT[d]}</div>`).join('')}</div>`,
+    '#F59120');
+
+  if(activeMths.length>1) html += vizCard('Evolución de puntaje promedio por mes',
+    svgLine(activeVals, activeMths.map(m=>MONTHS_SHORT[MONTHS_RPT.indexOf(m)]), '#F59120', 110),
+    '#d97706');
+
+  if(teacherEntries.length>1) html += vizCard('Promedio por docente',
+    teacherEntries.slice(0,10).map(([name,v])=>{
+      const avg=v.sum/v.cnt;
+      return hBar(shortName(name), avg/3*100, DOM_COLORS_RPT['D1'], avg.toFixed(1)+'/3');
+    }).join(''), '#2B91CF');
+
+  // Distribución de dominios observados
+  const domCounts = Object.entries(domData).filter(([,v])=>v.forms>0);
+  const maxDomForms = Math.max(...domCounts.map(([,v])=>v.forms),1);
+  if(domCounts.length) html += vizCard('Frecuencia de observación por dominio',
+    `<div style="padding:4px 0">${svgBar(domCounts.map(([,v])=>v.forms), domCounts.map(([d])=>d), Object.values(DOM_COLORS_RPT), maxDomForms, 110)}</div>`,
+    '#44579C');
+
+  panel.innerHTML = html;
+}
+
+// ---- LW DASHBOARD ----
+const LW_PREGUNTAS = [
+  '¿Qué hacen los estudiantes?','¿El objetivo es visible?','¿Hay pensamiento, no solo ejecución?',
+  '¿La tecnología apoya el aprendizaje?','¿Qué hace el docente?'
+];
+
+function renderRptLW() {
+  const panel = document.getElementById('rpt-lw-panel');
+  const data = filterRptData(rptData.lw, 'lw');
+  if(!data.length){panel.innerHTML='<div class="empty"><div class="empty-icon">◌</div><p>Sin datos de LW con estos filtros</p></div>';return;}
+
+  // Apertura del docente
+  const aperturas = {Alta:0,Parcial:0,Baja:0};
+  data.forEach(d=>{ if(d.apertura_docente&&aperturas[d.apertura_docente]!==undefined) aperturas[d.apertura_docente]++; });
+
+  // Tendencia por mes
+  const byMonth={};
+  MONTHS_RPT.forEach(m=>byMonth[m]=0);
+  data.forEach(d=>{
+    const act=activities.find(a=>a.id===d.activity_id);
+    if(act?.month&&byMonth[act.month]!==undefined) byMonth[act.month]++;
+  });
+  const mVals = MONTHS_RPT.map(m=>byMonth[m]);
+  const hasMTrend = mVals.filter(v=>v>0).length>1;
+
+  // Por docente
+  const byTeacher={};
+  data.forEach(d=>{if(!byTeacher[d.teacher_name])byTeacher[d.teacher_name]=0;byTeacher[d.teacher_name]++;});
+  const topT = Object.entries(byTeacher).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxT = Math.max(...topT.map(t=>t[1]),1);
+
+  // Parte de la clase
+  const partes={Inicio:0,Desarrollo:0,Cierre:0};
+  data.forEach(d=>{if(d.parte_clase&&partes[d.parte_clase]!==undefined)partes[d.parte_clase]++;});
+  const totalPartes = Object.values(partes).reduce((a,b)=>a+b,0);
+
+  const aperturaColors = {Alta:'#166534',Parcial:'#92400e',Baja:'#991b1b'};
+  const aperturaDonut = Object.entries(aperturas).filter(([,v])=>v>0).map(([k,v])=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="position:relative">
+        ${svgDonut(totalPartes>0?v/data.length*100:0, aperturaColors[k], 68, 9)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink)">${v}</div>
+      </div>
+      <div style="font-size:11px;color:var(--ink3)">${k}</div>
+    </div>`).join('');
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    ${statCard('LW registrados', data.length, '', '#2B91CF')}
+    ${statCard('Docentes visitados', Object.keys(byTeacher).length, '', '#0d9488')}
+    ${statCard('Alta apertura', aperturas.Alta, `${Math.round(aperturas.Alta/data.length*100)}% del total`, '#166534')}
+    ${statCard('Baja apertura', aperturas.Baja, 'docentes a trabajar', '#e11d48')}
+  </div>`;
+
+  if(aperturaDonut) html += vizCard('Apertura del docente a la devolución',
+    `<div style="display:flex;justify-content:space-around;padding:8px 0">${aperturaDonut}</div>`,
+    '#2B91CF');
+
+  if(hasMTrend) html += vizCard('Tendencia mensual de Learning Walks',
+    svgLine(mVals, MONTHS_SHORT, '#2B91CF', 110), '#2B91CF');
+
+  if(topT.length>1) html += vizCard('LW por docente',
+    topT.map(([name,v])=>hBar(shortName(name), v/maxT*100, '#2B91CF', v+' visitas')).join(''),
+    '#0d9488');
+
+  // Parte de la clase
+  if(totalPartes>0) {
+    const parteColors = {Inicio:'#2B91CF',Desarrollo:'#F59120',Cierre:'#44579C'};
+    html += vizCard('¿En qué parte de la clase se realizó el LW?',
+      `<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:4px 0">
+        ${Object.entries(partes).filter(([,v])=>v>0).map(([k,v])=>`
+          <div style="display:flex;align-items:center;gap:8px">
+            ${svgDonut(v/data.length*100, parteColors[k]||'#888', 56, 8)}
+            <div>
+              <div style="font-size:13px;font-weight:600">${v}</div>
+              <div style="font-size:11px;color:var(--ink3)">${k}</div>
+            </div>
+          </div>`).join('')}
+      </div>`, '#F59120');
+  }
+
+  panel.innerHTML = html;
+}
+
+// ---- FB DASHBOARD ----
+function renderRptFB() {
+  const panel = document.getElementById('rpt-fb-panel');
+  const data = filterRptData(rptData.fb, 'fb');
+  if(!data.length){panel.innerHTML='<div class="empty"><div class="empty-icon">◌</div><p>Sin datos de Feedback con estos filtros</p></div>';return;}
+
+  const conSeg = data.filter(d=>d.fecha_seguimiento).length;
+  const disposiciones = {Alta:0,Parcial:0,Baja:0};
+  data.forEach(d=>{ if(d.disposicion_docente&&disposiciones[d.disposicion_docente]!==undefined) disposiciones[d.disposicion_docente]++; });
+
+  const byTeacher={};
+  data.forEach(d=>{if(!byTeacher[d.teacher_name])byTeacher[d.teacher_name]=0;byTeacher[d.teacher_name]++;});
+  const topT=Object.entries(byTeacher).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxT=Math.max(...topT.map(t=>t[1]),1);
+
+  const byMonth={};
+  MONTHS_RPT.forEach(m=>byMonth[m]=0);
+  data.forEach(d=>{const act=activities.find(a=>a.id===d.activity_id);if(act?.month&&byMonth[act.month]!==undefined)byMonth[act.month]++;});
+  const mVals=MONTHS_RPT.map(m=>byMonth[m]);
+
+  const dispColors={Alta:'#166534',Parcial:'#92400e',Baja:'#991b1b'};
+  const dispTotal=data.length;
+  const dispDonut=Object.entries(disposiciones).filter(([,v])=>v>0).map(([k,v])=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="position:relative">
+        ${svgDonut(v/dispTotal*100, dispColors[k], 68, 9)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink)">${v}</div>
+      </div>
+      <div style="font-size:11px;color:var(--ink3)">${k}</div>
+    </div>`).join('');
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    ${statCard('Feedbacks registrados', data.length, '', '#e11d48')}
+    ${statCard('Con fecha de seguimiento', conSeg, `${Math.round(conSeg/data.length*100)}% del total`, '#0d9488')}
+    ${statCard('Alta disposición', disposiciones.Alta, `${Math.round(disposiciones.Alta/data.length*100)}%`, '#166534')}
+    ${statCard('Docentes atendidos', Object.keys(byTeacher).length, '', '#7c3aed')}
+  </div>`;
+
+  if(dispDonut) html += vizCard('Disposición del docente al cierre',
+    `<div style="display:flex;justify-content:space-around;padding:8px 0">${dispDonut}</div>`,
+    '#e11d48');
+
+  if(mVals.filter(v=>v>0).length>1) html += vizCard('Tendencia mensual de Feedback',
+    svgLine(mVals, MONTHS_SHORT, '#e11d48', 110), '#e11d48');
+
+  if(topT.length>1) html += vizCard('Feedback por docente',
+    topT.map(([name,v])=>hBar(shortName(name), v/maxT*100, '#e11d48', v+' sesiones')).join(''),
+    '#7c3aed');
+
+  // Compromisos recientes
+  const recientes = data.filter(d=>d.compromiso_docente).slice(0,4);
+  if(recientes.length) html += vizCard('Compromisos recientes del docente',
+    `<div style="display:flex;flex-direction:column;gap:10px">${recientes.map(d=>`
+      <div style="padding:10px 12px;background:var(--paper);border-radius:var(--r-sm);border-left:3px solid #e11d48">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:12.5px;font-weight:500">${shortName(d.teacher_name)}</span>
+          <span style="font-size:11px;color:var(--ink3)">${formatDate(d.fecha)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--ink2)">${(d.compromiso_docente||'').substring(0,120)}${(d.compromiso_docente||'').length>120?'...':''}</div>
+      </div>`).join('')}</div>`,
+    '#e11d48');
+
+  panel.innerHTML = html;
+}
+
+// ---- MC DASHBOARD ----
+function renderRptMC() {
+  const panel = document.getElementById('rpt-mc-panel');
+  const data = filterRptData(rptData.mc, 'mc');
+  if(!data.length){panel.innerHTML='<div class="empty"><div class="empty-icon">◌</div><p>Sin datos de Modelaje con estos filtros</p></div>';return;}
+
+  const MODELOS=['Yo hago, nosotros hacemos, ustedes hacen','Estrategias de monitoreo','Rutinas académicas o de gestión','Uso de tecnología','Gamificación o metodología activa','Evaluación formativa','Otro'];
+  const modelCounts={};
+  MODELOS.forEach(m=>modelCounts[m]=0);
+  data.forEach(d=>{ if(d.que_modelara) d.que_modelara.split(', ').forEach(m=>{if(modelCounts[m]!==undefined)modelCounts[m]++;else modelCounts[m]=1;}); });
+
+  const disposiciones={Alta:0,Parcial:0,Baja:0};
+  data.forEach(d=>{if(d.disposicion_docente&&disposiciones[d.disposicion_docente]!==undefined)disposiciones[d.disposicion_docente]++;});
+
+  const byTeacher={};
+  data.forEach(d=>{if(!byTeacher[d.teacher_name])byTeacher[d.teacher_name]=0;byTeacher[d.teacher_name]++;});
+
+  const byMonth={};
+  MONTHS_RPT.forEach(m=>byMonth[m]=0);
+  data.forEach(d=>{const act=activities.find(a=>a.id===d.activity_id);if(act?.month&&byMonth[act.month]!==undefined)byMonth[act.month]++;});
+  const mVals=MONTHS_RPT.map(m=>byMonth[m]);
+
+  const modelEntries=Object.entries(modelCounts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const maxM=Math.max(...modelEntries.map(([,v])=>v),1);
+
+  const dispColors={Alta:'#166534',Parcial:'#92400e',Baja:'#991b1b'};
+  const dispDonut=Object.entries(disposiciones).filter(([,v])=>v>0).map(([k,v])=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div style="position:relative">
+        ${svgDonut(v/data.length*100, dispColors[k], 68, 9)}
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink)">${v}</div>
+      </div>
+      <div style="font-size:11px;color:var(--ink3)">${k}</div>
+    </div>`).join('');
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    ${statCard('Modelajes registrados', data.length, '', '#44579C')}
+    ${statCard('Docentes involucrados', Object.keys(byTeacher).length, '', '#0d9488')}
+    ${statCard('Alta disposición', disposiciones.Alta, `${Math.round(disposiciones.Alta/(data.length||1)*100)}%`, '#166534')}
+  </div>`;
+
+  if(modelEntries.length) html += vizCard('¿Qué se modeló?',
+    modelEntries.map(([m,v])=>hBar(m, v/maxM*100, '#44579C', v+' veces')).join(''),
+    '#44579C');
+
+  if(dispDonut) html += vizCard('Disposición del docente tras el modelaje',
+    `<div style="display:flex;justify-content:space-around;padding:8px 0">${dispDonut}</div>`,
+    '#44579C');
+
+  if(mVals.filter(v=>v>0).length>1) html += vizCard('Tendencia mensual de Modelajes',
+    svgLine(mVals, MONTHS_SHORT, '#44579C', 110), '#44579C');
+
+  panel.innerHTML = html;
+}
+
+function switchRptTab(tab) {
+  currentRptTab = tab;
+  ['overview','fo','lw','fb','mc'].forEach(t => {
+    const btn = document.getElementById('rtab-'+t);
+    const panel = document.getElementById('rpt-'+t+'-panel');
+    if(btn && panel){
+      const active = t===tab;
+      btn.style.color = active ? 'var(--ch-orange)' : 'var(--ink3)';
+      btn.style.borderBottom = active ? '2px solid var(--ch-orange)' : '2px solid transparent';
+      panel.style.display = active ? '' : 'none';
+    }
+  });
+  renderReportes();
+}
+// ===================== END REPORTES =====================
 
 function renderRptLW() {
   const panel = document.getElementById('rpt-lw-panel');
