@@ -876,7 +876,7 @@ function populateFilterSelects() {
 function cap(s){if(!s)return'';return s.charAt(0)+s.slice(1).toLowerCase();}
 function typeBadge(t){return`<span class="badge b-${TYPE_COLORS[t]||'lw'}">${TYPE_LABELS[t]||t}</span>`;}
 function statusBadge(s){if(s==='done')return'<span class="badge b-done">✓ Completada</span>';return'<span class="badge b-pend">Pendiente</span>';}
-function initials(name){if(!name)return'?';const p=name.trim().split(' ');return(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase();}
+function initials(name){if(!name)return'?';const p=name.trim().split(/\s+/).filter(w=>w.length>0);if(!p.length)return'?';return((p[0][0]||'')+(p[1]?p[1][0]:'')).toUpperCase()||'?';}
 function shortName(name){if(!name)return'';const p=name.trim().split(' ');return p[0]+(p[1]?' '+p[1]:'');}
 function monthFromDate(d){if(!d)return'';const m=parseInt(d.split('-')[1]);const map={9:'SEPTIEMBRE',10:'OCTUBRE',11:'NOVIEMBRE',12:'DICIEMBRE',1:'ENERO',2:'FEBRERO',3:'MARZO',4:'ABRIL',5:'MAYO',6:'JUNIO'};return map[m]||'';}
 function formatDate(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
@@ -1054,8 +1054,12 @@ function copyCalUrl(){
 function renderDocentes(){
   const search=document.getElementById('f-doc-search').value.toLowerCase();
   const mes=document.getElementById('f-doc-mes').value;
-  document.getElementById('docente-detail').style.display='none';
-  document.getElementById('docentes-grid').style.display='';
+  // Solo resetear a grid si el detalle no está activo
+  const detailVisible = document.getElementById('docente-detail').style.display==='block';
+  if(!detailVisible){
+    document.getElementById('docente-detail').style.display='none';
+    document.getElementById('docentes-grid').style.display='';
+  }
   const filtered=teachers.filter(t=>!search||t.name.toLowerCase().includes(search));
   if(!filtered.length){document.getElementById('docentes-grid').innerHTML='<div class="empty"><p>No se encontraron docentes</p></div>';return;}
   const maxTotal=Math.max(...filtered.map(t=>{let a=activities.filter(x=>x.teacher_name===t.name);if(mes)a=a.filter(x=>x.month===mes);return a.length;}),1);
@@ -1080,8 +1084,11 @@ function renderDocentes(){
 }
 
 function showTeacherDetail(name){
+  const mes = document.getElementById('f-doc-mes')?.value || '';
   document.getElementById('dd-name').textContent=name;
-  const acts=activities.filter(a=>a.teacher_name===name).sort((a,b)=>b.date.localeCompare(a.date));
+  let acts=activities.filter(a=>a.teacher_name===name);
+  if(mes) acts=acts.filter(a=>a.month===mes);
+  acts.sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('dd-table').innerHTML=`<table class="tbl">
     <thead><tr><th>Tipo</th><th>Líder</th><th>Fecha</th><th>Mes</th><th>Estado</th><th>Evidencia</th></tr></thead>
     <tbody>${acts.map(a=>`<tr class="${a.status==='done'?'done-row':''}">
@@ -1091,7 +1098,7 @@ function showTeacherDetail(name){
       <td style="font-size:12px;color:var(--ink3)">${cap(a.month||'')}</td>
       <td>${statusBadge(a.status)}</td>
       <td>${a.evidence_url?`<a class="evidence-link" href="${a.evidence_url}" target="_blank">📄 Ver</a>`:'—'}</td>
-    </tr>`).join('')}</tbody>
+    </tr>`).join('')}${!acts.length?'<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:20px">Sin actividades en este período</td></tr>':''}</tbody>
   </table>`;
   document.getElementById('docentes-grid').style.display='none';
   document.getElementById('docente-detail').style.display='block';
@@ -2568,7 +2575,14 @@ async function submitLW() {
 }
 
 // ---- MC FORM ----
-function buildFormMC(a) {
+async function buildFormMC(a) {
+  // Cargar borrador existente si lo hay
+  let draft = null;
+  try {
+    const existing = await sb(`form_mc?activity_id=eq.${a.id}&limit=1`);
+    if(existing && existing.length) draft = existing[0];
+  } catch(e) {}
+  const modelos = (draft?.que_modelara || '').split(', ');
   document.getElementById('form-body').innerHTML = `
     <div style="padding:18px 22px">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
@@ -2580,13 +2594,13 @@ function buildFormMC(a) {
 
       <div style="font-size:12px;font-weight:500;color:var(--ink);background:#eef0f8;color:#344080;padding:7px 10px;border-radius:var(--r-sm);margin-bottom:10px">Antes — Acuerdo con el docente</div>
       ${[
-        ['mc-objetivo','¿Qué quiere lograr el docente con sus alumnos en esta clase? *','¿Cuál es el objetivo de aprendizaje?'],
-        ['mc-dificultad','¿Qué es lo que más le cuesta lograr con este grupo? *','El problema real que origina el modelaje...'],
-        ['mc-foco','¿Qué le pidió al docente que observara específicamente mientras tú enseñas?','Ej: cómo hago las transiciones, cómo genero participación...']
-      ].map(([id,lbl,ph])=>`
+        ['mc-objetivo','¿Qué quiere lograr el docente con sus alumnos en esta clase?','¿Cuál es el objetivo de aprendizaje?', draft?.objetivo_docente],
+        ['mc-dificultad','¿Qué es lo que más le cuesta lograr con este grupo? *','El problema real que origina el modelaje...', draft?.dificultad_docente],
+        ['mc-foco','¿Qué le pidió al docente que observara específicamente mientras tú enseñas?','Ej: cómo hago las transiciones, cómo genero participación...', draft?.foco_observacion]
+      ].map(([id,lbl,ph,val])=>`
         <div style="margin-bottom:12px">
           <label style="font-size:12.5px;color:var(--ink);display:block;margin-bottom:5px;line-height:1.4">${lbl}</label>
-          <textarea class="fc" id="${id}" placeholder="${ph}" style="min-height:65px"></textarea>
+          <textarea class="fc" id="${id}" placeholder="${ph}" style="min-height:65px">${val||''}</textarea>
         </div>`).join('')}
 
       <div style="font-size:12px;font-weight:500;color:var(--ink);background:#eef0f8;color:#344080;padding:7px 10px;border-radius:var(--r-sm);margin-bottom:10px;margin-top:6px">Durante — ¿Qué se modeló?</div>
@@ -2595,31 +2609,31 @@ function buildFormMC(a) {
         <div style="display:flex;flex-direction:column;gap:6px">
           ${['Yo hago, nosotros hacemos, ustedes hacen','Estrategias de monitoreo en el aula','Rutinas académicas o de gestión','Uso de tecnología en el aula','Gamificación o metodología activa','Evaluación formativa','Otro'].map(op=>`
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--ink)">
-              <input type="checkbox" name="mc_modelo" value="${op}" style="width:16px;height:16px;accent-color:var(--teal)"> ${op}
+              <input type="checkbox" name="mc_modelo" value="${op}" ${modelos.includes(op)?'checked':''} style="width:16px;height:16px;accent-color:var(--teal)"> ${op}
             </label>`).join('')}
         </div>
       </div>
 
       <div style="font-size:12px;font-weight:500;color:var(--ink);background:#eef0f8;color:#344080;padding:7px 10px;border-radius:var(--r-sm);margin-bottom:10px">Después — Conversación de transferencia</div>
       ${[
-        ['mc-noto','¿Qué notó el docente durante la clase? (sus palabras)','Lo que el docente observó y describió...'],
-        ['mc-compromiso','¿Qué se comprometió a intentar el docente la próxima semana? *','Compromiso específico y observable...'],
-        ['mc-adaptacion','¿Qué necesita adaptar para que funcione con su estilo y su grupo?','Ajustes que el docente identificó...']
-      ].map(([id,lbl,ph])=>`
+        ['mc-noto','¿Qué notó el docente durante la clase? (sus palabras)','Lo que el docente observó y describió...', draft?.noto_docente],
+        ['mc-compromiso','¿Qué se comprometió a intentar el docente la próxima semana?','Compromiso específico y observable...', draft?.compromiso_docente],
+        ['mc-adaptacion','¿Qué necesita adaptar para que funcione con su estilo y su grupo?','Ajustes que el docente identificó...', draft?.adaptacion_docente]
+      ].map(([id,lbl,ph,val])=>`
         <div style="margin-bottom:12px">
           <label style="font-size:12.5px;color:var(--ink);display:block;margin-bottom:5px;line-height:1.4">${lbl}</label>
-          <textarea class="fc" id="${id}" placeholder="${ph}" style="min-height:65px"></textarea>
+          <textarea class="fc" id="${id}" placeholder="${ph}" style="min-height:65px">${val||''}</textarea>
         </div>`).join('')}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label style="font-size:12px;font-weight:500;color:var(--ink3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px">Fecha de seguimiento</label>
-          <input type="date" class="fc" id="mc-fecha-seg"></div>
+          <input type="date" class="fc" id="mc-fecha-seg" value="${draft?.fecha_seguimiento||''}"></div>
         <div><label style="font-size:12px;font-weight:500;color:var(--ink3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px">Disposición del docente</label>
           <div style="display:flex;gap:6px;padding-top:2px">
             ${['Alta','Parcial','Baja'].map(v=>`<label style="cursor:pointer">
-              <input type="radio" name="mc_disposicion" value="${v}" style="display:none">
+              <input type="radio" name="mc_disposicion" value="${v}" style="display:none" ${draft?.disposicion_docente===v?'checked':''}>
               <div data-name="mc_disposicion" data-val="${v}" onclick="selectLW(this)"
-                style="padding:5px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;font-weight:500;color:var(--ink3);background:var(--white);cursor:pointer;transition:.15s">
+                style="padding:5px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;font-weight:500;${draft?.disposicion_docente===v?'background:var(--teal);color:#fff;border-color:var(--teal)':'color:var(--ink3);background:var(--white)'};cursor:pointer;transition:.15s">
                 ${v}
               </div>
             </label>`).join('')}
@@ -2627,20 +2641,25 @@ function buildFormMC(a) {
         </div>
       </div>
     </div>
-    <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
-      <button style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r-sm);font-size:13.5px;font-family:'Outfit',sans-serif;font-weight:500;cursor:pointer;border:none;background:#F59120;color:#fff" id="mc-submit-btn" onclick="submitMC()">Guardar modelaje ✓</button>
+    <div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--ink3)">Puedes guardar y continuar en otro momento</span>
+      <div style="display:flex;gap:8px">
+        <button style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:var(--r-sm);font-size:13px;font-family:'Outfit',sans-serif;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--ink)" id="mc-submit-btn" onclick="submitMC(false)">Guardar borrador</button>
+        <button style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:var(--r-sm);font-size:13px;font-family:'Outfit',sans-serif;font-weight:500;cursor:pointer;border:none;background:#F59120;color:#fff" onclick="submitMC(true)">Completar ✓</button>
+      </div>
     </div>`;
 }
 
-async function submitMC() {
-  const compromiso = document.getElementById('mc-compromiso')?.value.trim();
+async function submitMC(markDone = false) {
   const dificultad = document.getElementById('mc-dificultad')?.value.trim();
-  if (!dificultad || !compromiso) { notify('Completa el problema del docente y el compromiso post-modelaje'); return; }
+  if (!dificultad) { notify('Completa al menos el problema del docente'); return; }
   const modelos = [...document.querySelectorAll('input[name="mc_modelo"]:checked')].map(x=>x.value).join(', ');
   const btn = document.getElementById('mc-submit-btn');
   btn.textContent='Guardando...'; btn.disabled=true;
   try {
-    await sb('form_mc',{method:'POST',body:JSON.stringify({
+    // Verificar si ya existe un registro para esta actividad
+    const existing = await sb(`form_mc?activity_id=eq.${currentFormActivity.id}&limit=1`);
+    const payload = {
       activity_id:currentFormActivity.id,
       leader_name:currentProfile?.leader_name,
       teacher_name:currentFormActivity.teacher_name,
@@ -2650,18 +2669,27 @@ async function submitMC() {
       foco_observacion:document.getElementById('mc-foco')?.value,
       que_modelara:modelos,
       noto_docente:document.getElementById('mc-noto')?.value,
-      compromiso_docente:compromiso,
+      compromiso_docente:document.getElementById('mc-compromiso')?.value,
       adaptacion_docente:document.getElementById('mc-adaptacion')?.value,
       fecha_seguimiento:document.getElementById('mc-fecha-seg')?.value||null,
       disposicion_docente:document.querySelector('input[name="mc_disposicion"]:checked')?.value||null
-    })});
-    await sb(`activities?id=eq.${currentFormActivity.id}`,{method:'PATCH',body:JSON.stringify({status:'done'})});
-    await loadActivities();
-    closeModal('modal-form');
-    notify('Modelaje guardado y sesión completada ✓');
+    };
+    if(existing && existing.length) {
+      await sb(`form_mc?id=eq.${existing[0].id}`,{method:'PATCH',body:JSON.stringify(payload)});
+    } else {
+      await sb('form_mc',{method:'POST',body:JSON.stringify(payload)});
+    }
+    if(markDone) {
+      await sb(`activities?id=eq.${currentFormActivity.id}`,{method:'PATCH',body:JSON.stringify({status:'done'})});
+      await loadActivities();
+      closeModal('modal-form');
+      notify('Modelaje completado ✓');
+    } else {
+      notify('Borrador guardado — puedes seguir llenando más tarde ✓');
+    }
     renderCurrentPage();
   } catch(e){notify('Error al guardar.');}
-  btn.textContent='Guardar modelaje ✓'; btn.disabled=false;
+  btn.textContent='Guardar borrador'; btn.disabled=false;
 }
 
 // ---- FB FORM ----
@@ -2839,14 +2867,16 @@ async function openCoachingDetail(teacherName) {
 
 function renderCoachingCycles(teacherName) {
   const CICLO_NAMES = ['','PRIMER','SEGUNDO','TERCER','CUARTO'];
+  const CICLO_COLORS = ['','#2B91CF','#F59120','#44579C','#0891b2'];
   const ENFOQUE_OPTS = ['Rigor académico','Gestión','Planeación'];
   const container = document.getElementById('coaching-cycles-container');
   container.innerHTML = currentCoachingCycles.map(cycle => {
     const n = cycle.numero_ciclo;
+    const color = CICLO_COLORS[n];
     const accs = computeCycleActions(teacherName, cycle.responsable, cycle.fecha_inicio, cycle.fecha_cierre);
-    return `<div class="card" style="padding:18px;margin-bottom:16px" id="cycle-card-${n}">
+    return `<div class="card" style="padding:18px;margin-bottom:16px;border-left:4px solid ${color}" id="cycle-card-${n}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:600;color:var(--ink);text-transform:uppercase;letter-spacing:.5px">${CICLO_NAMES[n]} CICLO DE COACHING</div>
+        <div style="font-size:13px;font-weight:600;color:${color};text-transform:uppercase;letter-spacing:.5px">${CICLO_NAMES[n]} CICLO DE COACHING</div>
         <button class="btn btn-outline btn-sm" onclick="saveCoachingCycle(${n})">Guardar ciclo</button>
       </div>
 
